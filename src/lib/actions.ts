@@ -7,6 +7,7 @@ import { notes, type Note } from "@/db/schema";
 import { enrichNote } from "@/lib/ai";
 import { embedDocuments, embedQuery } from "@/lib/embeddings";
 import { requireUserId } from "@/lib/auth";
+import { withRetry } from "@/lib/retry";
 
 export type NoteListItem = Pick<
   Note,
@@ -15,25 +16,29 @@ export type NoteListItem = Pick<
 
 export async function listNotes(): Promise<NoteListItem[]> {
   const ownerId = await requireUserId();
-  return db
-    .select({
-      id: notes.id,
-      title: notes.title,
-      summary: notes.summary,
-      tags: notes.tags,
-      updatedAt: notes.updatedAt,
-    })
-    .from(notes)
-    .where(eq(notes.ownerId, ownerId))
-    .orderBy(desc(notes.updatedAt));
+  return withRetry(() =>
+    db
+      .select({
+        id: notes.id,
+        title: notes.title,
+        summary: notes.summary,
+        tags: notes.tags,
+        updatedAt: notes.updatedAt,
+      })
+      .from(notes)
+      .where(eq(notes.ownerId, ownerId))
+      .orderBy(desc(notes.updatedAt)),
+  );
 }
 
 export async function getNote(id: string): Promise<Note | undefined> {
   const ownerId = await requireUserId();
-  const [note] = await db
-    .select()
-    .from(notes)
-    .where(and(eq(notes.id, id), eq(notes.ownerId, ownerId)));
+  const [note] = await withRetry(() =>
+    db
+      .select()
+      .from(notes)
+      .where(and(eq(notes.id, id), eq(notes.ownerId, ownerId))),
+  );
   return note;
 }
 
@@ -118,18 +123,20 @@ export async function searchNotes(query: string): Promise<SearchHit[]> {
   const vectorLiteral = JSON.stringify(queryEmbedding);
   const similarity = sql<number>`1 - (${notes.embedding} <=> ${vectorLiteral}::vector)`;
 
-  return db
-    .select({
-      id: notes.id,
-      title: notes.title,
-      summary: notes.summary,
-      tags: notes.tags,
-      similarity,
-    })
-    .from(notes)
-    .where(and(eq(notes.ownerId, ownerId), sql`${notes.embedding} IS NOT NULL`))
-    .orderBy(desc(similarity))
-    .limit(8);
+  return withRetry(() =>
+    db
+      .select({
+        id: notes.id,
+        title: notes.title,
+        summary: notes.summary,
+        tags: notes.tags,
+        similarity,
+      })
+      .from(notes)
+      .where(and(eq(notes.ownerId, ownerId), sql`${notes.embedding} IS NOT NULL`))
+      .orderBy(desc(similarity))
+      .limit(8),
+  );
 }
 
 /**
@@ -145,22 +152,24 @@ export async function retrieveContext(
   const vectorLiteral = JSON.stringify(queryEmbedding);
   const similarity = sql<number>`1 - (${notes.embedding} <=> ${vectorLiteral}::vector)`;
 
-  return db
-    .select({
-      id: notes.id,
-      title: notes.title,
-      content: notes.content,
-      similarity,
-    })
-    .from(notes)
-    .where(
-      and(
-        eq(notes.ownerId, ownerId),
-        sql`${notes.embedding} IS NOT NULL`,
-        // Only include reasonably relevant notes so the model isn't fed noise.
-        gt(similarity, 0.3),
-      ),
-    )
-    .orderBy(desc(similarity))
-    .limit(k);
+  return withRetry(() =>
+    db
+      .select({
+        id: notes.id,
+        title: notes.title,
+        content: notes.content,
+        similarity,
+      })
+      .from(notes)
+      .where(
+        and(
+          eq(notes.ownerId, ownerId),
+          sql`${notes.embedding} IS NOT NULL`,
+          // Only include reasonably relevant notes so the model isn't fed noise.
+          gt(similarity, 0.3),
+        ),
+      )
+      .orderBy(desc(similarity))
+      .limit(k),
+  );
 }

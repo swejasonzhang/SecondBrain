@@ -4,7 +4,7 @@ An AI-powered knowledge base. Capture notes in Markdown, search them **by meanin
 
 Built to showcase a modern, production-shaped full-stack + AI stack end to end.
 
-> **Live demo:** _add your Vercel URL here_
+> **Live demo:** https://second-brain-ai-knowledge-base.vercel.app
 
 ---
 
@@ -30,6 +30,7 @@ Each save runs enrichment and embedding **in parallel**, then stores the 1024-di
 - **[Claude](https://www.anthropic.com/claude)** (`claude-opus-4-8` for chat, `claude-haiku-4-5` for enrichment) via the official Anthropic SDK
 - **[Voyage AI](https://voyageai.com)** — `voyage-3.5` embeddings (Anthropic's recommended embeddings partner)
 - **[Clerk](https://clerk.com)** — authentication & session management
+- **[Vitest](https://vitest.dev)** — unit/integration tests with mocked externals
 - **[Vercel](https://vercel.com)** — deployment
 
 ## Architecture
@@ -104,6 +105,24 @@ npm run dev
 | `npm run db:push` | Push schema directly (dev convenience) |
 | `npm run db:studio` | Open Drizzle Studio to inspect data |
 | `npm run db:seed` | Insert demo notes |
+| `npm test` | Run the Vitest suite |
+| `npm run test:watch` | Run tests in watch mode |
+
+## Testing
+
+The suite (`npm test`) covers the core logic with all external services mocked, so it runs anywhere with no keys, DB, or network:
+
+- **`retry`** — transient-failure backoff (absorbs Neon cold starts)
+- **`embeddings`** — Voyage request shape (asymmetric query/document), vector mapping, missing-key handling
+- **`ai`** — Claude enrichment: structured-output parsing, tag capping, safe defaults
+- **`actions`** — auth scoping, the create/update save flow (enrich + embed + insert), input validation
+- **`chat` route** — RAG orchestration: grounding the prompt in retrieved notes, streamed output, `x-sources` citations, and graceful degradation when retrieval fails
+
+```bash
+npm test
+# Test Files  5 passed (5)
+#      Tests  22 passed (22)
+```
 
 ## Deploying
 
