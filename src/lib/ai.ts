@@ -1,17 +1,17 @@
-import Anthropic from "@anthropic-ai/sdk";
+import { GoogleGenAI, Type } from "@google/genai";
 
-export const CHAT_MODEL = "claude-opus-4-8";
-export const ENRICH_MODEL = "claude-haiku-4-5";
+export const CHAT_MODEL = "gemini-2.5-flash";
+export const ENRICH_MODEL = "gemini-2.5-flash";
 
-let client: Anthropic | null = null;
+let client: GoogleGenAI | null = null;
 
-export function getAnthropic(): Anthropic {
-  if (!process.env.ANTHROPIC_API_KEY) {
+export function getGenAI(): GoogleGenAI {
+  if (!process.env.GEMINI_API_KEY) {
     throw new Error(
-      "ANTHROPIC_API_KEY is not set. Add it to .env.local — see .env.example.",
+      "GEMINI_API_KEY is not set. Add it to .env.local — see .env.example.",
     );
   }
-  client ??= new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
+  client ??= new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
   return client;
 }
 
@@ -22,46 +22,36 @@ export interface Enrichment {
 }
 
 export async function enrichNote(content: string): Promise<Enrichment> {
-  const anthropic = getAnthropic();
+  const ai = getGenAI();
 
-  const response = await anthropic.messages.create({
+  const response = await ai.models.generateContent({
     model: ENRICH_MODEL,
-    max_tokens: 512,
-    output_config: {
-      format: {
-        type: "json_schema",
-        schema: {
-          type: "object",
-          properties: {
-            title: {
-              type: "string",
-              description: "A concise, specific title (max ~8 words).",
-            },
-            summary: {
-              type: "string",
-              description: "One sentence capturing the note's essence.",
-            },
-            tags: {
-              type: "array",
-              items: { type: "string" },
-              description: "1-5 lowercase topical tags, no '#'.",
-            },
+    contents: `Analyze this note and produce a title, summary, and tags.\n\n---\n${content}\n---`,
+    config: {
+      responseMimeType: "application/json",
+      responseSchema: {
+        type: Type.OBJECT,
+        properties: {
+          title: {
+            type: Type.STRING,
+            description: "A concise, specific title (max ~8 words).",
           },
-          required: ["title", "summary", "tags"],
-          additionalProperties: false,
+          summary: {
+            type: Type.STRING,
+            description: "One sentence capturing the note's essence.",
+          },
+          tags: {
+            type: Type.ARRAY,
+            items: { type: Type.STRING },
+            description: "1-5 lowercase topical tags, no '#'.",
+          },
         },
+        required: ["title", "summary", "tags"],
       },
     },
-    messages: [
-      {
-        role: "user",
-        content: `Analyze this note and produce a title, summary, and tags.\n\n---\n${content}\n---`,
-      },
-    ],
   });
 
-  const text = response.content.find((b) => b.type === "text");
-  const parsed = JSON.parse(text && "text" in text ? text.text : "{}");
+  const parsed = JSON.parse(response.text ?? "{}");
   return {
     title: parsed.title || "Untitled",
     summary: parsed.summary || "",

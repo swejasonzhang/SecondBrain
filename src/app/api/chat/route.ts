@@ -1,4 +1,4 @@
-import { getAnthropic, CHAT_MODEL } from "@/lib/ai";
+import { getGenAI, CHAT_MODEL } from "@/lib/ai";
 import { retrieveContext } from "@/lib/actions";
 
 export const runtime = "nodejs";
@@ -17,7 +17,7 @@ export async function POST(req: Request) {
   } catch (err) {
     const detail = err instanceof Error ? err.message : "retrieval failed";
     return new Response(
-      `I couldn't reach your notes to answer that.\n\n${detail}\n\nMake sure DATABASE_URL and VOYAGE_API_KEY are set in .env.local.`,
+      `I couldn't reach your notes to answer that.\n\n${detail}\n\nMake sure DATABASE_URL and GEMINI_API_KEY are set in .env.local.`,
       { status: 200, headers: { "Content-Type": "text/plain; charset=utf-8" } },
     );
   }
@@ -39,26 +39,21 @@ The user's relevant notes:
 ${context}
 ---`;
 
-  const anthropic = getAnthropic();
+  const ai = getGenAI();
 
   const stream = new ReadableStream<Uint8Array>({
     async start(controller) {
       const encoder = new TextEncoder();
       try {
-        const messageStream = anthropic.messages.stream({
+        const result = await ai.models.generateContentStream({
           model: CHAT_MODEL,
-          max_tokens: 1024,
-          system,
-          messages: [{ role: "user", content: message }],
+          contents: message,
+          config: { systemInstruction: system, maxOutputTokens: 1024 },
         });
 
-        for await (const event of messageStream) {
-          if (
-            event.type === "content_block_delta" &&
-            event.delta.type === "text_delta"
-          ) {
-            controller.enqueue(encoder.encode(event.delta.text));
-          }
+        for await (const chunk of result) {
+          const text = chunk.text;
+          if (text) controller.enqueue(encoder.encode(text));
         }
       } catch (err) {
         controller.enqueue(

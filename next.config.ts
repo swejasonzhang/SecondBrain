@@ -3,7 +3,7 @@ import type { NextConfig } from "next";
 const nextConfig: NextConfig = {
   poweredByHeader: false,
   reactStrictMode: true,
-  serverExternalPackages: ["@anthropic-ai/sdk", "voyageai"],
+  serverExternalPackages: ["@google/genai"],
   async headers() {
     return [
       {

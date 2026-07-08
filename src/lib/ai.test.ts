@@ -1,25 +1,26 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 
-const createMock = vi.fn();
-vi.mock("@anthropic-ai/sdk", () => ({
-  default: class {
-    messages = { create: createMock };
+const generateMock = vi.fn();
+vi.mock("@google/genai", () => ({
+  GoogleGenAI: class {
+    models = { generateContent: generateMock };
   },
+  Type: { OBJECT: "OBJECT", STRING: "STRING", ARRAY: "ARRAY" },
 }));
 
 function mockJsonResponse(obj: unknown) {
-  return { content: [{ type: "text", text: JSON.stringify(obj) }] };
+  return { text: JSON.stringify(obj) };
 }
 
 describe("enrichNote", () => {
   beforeEach(() => {
     vi.resetModules();
-    createMock.mockReset();
-    vi.stubEnv("ANTHROPIC_API_KEY", "test-key");
+    generateMock.mockReset();
+    vi.stubEnv("GEMINI_API_KEY", "test-key");
   });
 
   it("returns the title/summary and caps tags at 5", async () => {
-    createMock.mockResolvedValue(
+    generateMock.mockResolvedValue(
       mockJsonResponse({
         title: "Vector databases 101",
         summary: "How pgvector enables similarity search.",
@@ -35,20 +36,20 @@ describe("enrichNote", () => {
     expect(result.tags).toEqual(["a", "b", "c", "d", "e"]);
   });
 
-  it("uses the Haiku model and structured JSON output", async () => {
-    createMock.mockResolvedValue(
+  it("uses the Gemini model and structured JSON output", async () => {
+    generateMock.mockResolvedValue(
       mockJsonResponse({ title: "t", summary: "s", tags: [] }),
     );
     const { enrichNote } = await import("./ai");
     await enrichNote("content");
 
-    const args = createMock.mock.calls[0][0];
-    expect(args.model).toBe("claude-haiku-4-5");
-    expect(args.output_config.format.type).toBe("json_schema");
+    const args = generateMock.mock.calls[0][0];
+    expect(args.model).toBe("gemini-2.5-flash");
+    expect(args.config.responseMimeType).toBe("application/json");
   });
 
   it("falls back to safe defaults when fields are missing", async () => {
-    createMock.mockResolvedValue(mockJsonResponse({}));
+    generateMock.mockResolvedValue(mockJsonResponse({}));
     const { enrichNote } = await import("./ai");
     const result = await enrichNote("content");
 
@@ -57,9 +58,9 @@ describe("enrichNote", () => {
     expect(result.tags).toEqual([]);
   });
 
-  it("throws a helpful error when ANTHROPIC_API_KEY is missing", async () => {
-    vi.stubEnv("ANTHROPIC_API_KEY", "");
+  it("throws a helpful error when GEMINI_API_KEY is missing", async () => {
+    vi.stubEnv("GEMINI_API_KEY", "");
     const { enrichNote } = await import("./ai");
-    await expect(enrichNote("x")).rejects.toThrow(/ANTHROPIC_API_KEY/);
+    await expect(enrichNote("x")).rejects.toThrow(/GEMINI_API_KEY/);
   });
 });

@@ -1,15 +1,15 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 
 vi.mock("@/lib/actions", () => ({ retrieveContext: vi.fn() }));
-vi.mock("@/lib/ai", () => ({ getAnthropic: vi.fn(), CHAT_MODEL: "claude-opus-4-8" }));
+vi.mock("@/lib/ai", () => ({ getGenAI: vi.fn(), CHAT_MODEL: "gemini-2.5-flash" }));
 
 import { POST } from "./route";
 import { retrieveContext } from "@/lib/actions";
-import { getAnthropic } from "@/lib/ai";
+import { getGenAI } from "@/lib/ai";
 
 async function* textStream(chunks: string[]) {
   for (const text of chunks) {
-    yield { type: "content_block_delta", delta: { type: "text_delta", text } };
+    yield { text };
   }
 }
 
@@ -27,9 +27,9 @@ const streamMock = vi.fn();
 
 beforeEach(() => {
   vi.clearAllMocks();
-  vi.mocked(getAnthropic).mockReturnValue({
-    messages: { stream: streamMock },
-  } as unknown as ReturnType<typeof getAnthropic>);
+  vi.mocked(getGenAI).mockReturnValue({
+    models: { generateContentStream: streamMock },
+  } as unknown as ReturnType<typeof getGenAI>);
 });
 
 describe("POST /api/chat", () => {
@@ -42,14 +42,13 @@ describe("POST /api/chat", () => {
     vi.mocked(retrieveContext).mockResolvedValue([
       { id: "n1", title: "Note One", content: "vector db facts", similarity: 0.9 },
     ]);
-    streamMock.mockReturnValue(textStream(["Hello ", "world"]));
+    streamMock.mockResolvedValue(textStream(["Hello ", "world"]));
 
     const res = await post({ message: "what did I learn?" });
     expect(res.status).toBe(200);
-
     expect(await res.text()).toBe("Hello world");
 
-    const systemPrompt = streamMock.mock.calls[0][0].system as string;
+    const systemPrompt = streamMock.mock.calls[0][0].config.systemInstruction as string;
     expect(systemPrompt).toContain("Note One");
     expect(systemPrompt).toContain("vector db facts");
   });
@@ -58,7 +57,7 @@ describe("POST /api/chat", () => {
     vi.mocked(retrieveContext).mockResolvedValue([
       { id: "n1", title: "Note One", content: "c", similarity: 0.9 },
     ]);
-    streamMock.mockReturnValue(textStream(["ok"]));
+    streamMock.mockResolvedValue(textStream(["ok"]));
 
     const res = await post({ message: "q" });
     const sources = JSON.parse(

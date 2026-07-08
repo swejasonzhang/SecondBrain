@@ -1,35 +1,41 @@
-import { VoyageAIClient } from "voyageai";
+import { GoogleGenAI } from "@google/genai";
 
-const EMBEDDING_MODEL = "voyage-3.5";
+const EMBEDDING_MODEL = "gemini-embedding-001";
 export const EMBEDDING_DIMENSIONS = 1024;
 
-let client: VoyageAIClient | null = null;
+let client: GoogleGenAI | null = null;
 
-function getClient(): VoyageAIClient {
-  if (!process.env.VOYAGE_API_KEY) {
+function getClient(): GoogleGenAI {
+  if (!process.env.GEMINI_API_KEY) {
     throw new Error(
-      "VOYAGE_API_KEY is not set. Add it to .env.local — see .env.example.",
+      "GEMINI_API_KEY is not set. Add it to .env.local — see .env.example.",
     );
   }
-  client ??= new VoyageAIClient({ apiKey: process.env.VOYAGE_API_KEY });
+  client ??= new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
   return client;
 }
 
 export async function embedDocuments(texts: string[]): Promise<number[][]> {
   if (texts.length === 0) return [];
-  const res = await getClient().embed({
-    input: texts,
+  const res = await getClient().models.embedContent({
     model: EMBEDDING_MODEL,
-    inputType: "document",
+    contents: texts,
+    config: {
+      outputDimensionality: EMBEDDING_DIMENSIONS,
+      taskType: "RETRIEVAL_DOCUMENT",
+    },
   });
-  return (res.data ?? []).map((d) => d.embedding ?? []);
+  return (res.embeddings ?? []).map((e) => e.values ?? []);
 }
 
 export async function embedQuery(text: string): Promise<number[]> {
-  const res = await getClient().embed({
-    input: [text],
+  const res = await getClient().models.embedContent({
     model: EMBEDDING_MODEL,
-    inputType: "query",
+    contents: text,
+    config: {
+      outputDimensionality: EMBEDDING_DIMENSIONS,
+      taskType: "RETRIEVAL_QUERY",
+    },
   });
-  return res.data?.[0]?.embedding ?? [];
+  return res.embeddings?.[0]?.values ?? [];
 }
