@@ -3,6 +3,8 @@ import { retrieveContext } from "@/lib/actions";
 
 export const runtime = "nodejs";
 export const maxDuration = 60;
+// Co-locate with the Neon database (us-east-1) to minimise query latency.
+export const preferredRegion = "iad1";
 
 /**
  * "Chat with your brain" — Retrieval-Augmented Generation.

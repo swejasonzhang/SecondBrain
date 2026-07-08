@@ -4,6 +4,8 @@ import { Workspace } from "@/components/Workspace";
 
 // Always render fresh — notes change on every save.
 export const dynamic = "force-dynamic";
+// Co-locate with the Neon database (us-east-1) to minimise query latency.
+export const preferredRegion = "iad1";
 
 export default async function Home() {
   return (

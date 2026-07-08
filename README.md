@@ -124,6 +124,16 @@ npm test
 #      Tests  22 passed (22)
 ```
 
+## Performance
+
+A few deliberate choices keep it fast and lean:
+
+- **Region co-location** — serverless functions run in `iad1`, the same region as the Neon database (`us-east-1`), so queries don't cross the country.
+- **Parallel writes** — each save fires AI enrichment (Claude) and embedding (Voyage) concurrently, so a save costs ~one API round-trip, not two.
+- **Streamed answers** — the RAG endpoint streams tokens as they're generated; the client renders incrementally and memoizes completed messages so they aren't re-parsed on every token.
+- **Cold-start resilience** — DB reads retry with backoff to absorb Neon's serverless compute wake-up.
+- **Lean bundle** — no unused dependencies; heavy server SDKs are kept out of the client bundle.
+
 ## Deploying
 
 1. Push to GitHub and import the repo into **Vercel**.
