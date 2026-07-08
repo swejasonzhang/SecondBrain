@@ -4,7 +4,7 @@ import { revalidatePath } from "next/cache";
 import { desc, eq, sql, and, gt } from "drizzle-orm";
 import { db } from "@/db";
 import { notes, type Note } from "@/db/schema";
-import { enrichNote } from "@/lib/ai";
+import { enrichNote, type Enrichment } from "@/lib/ai";
 import { embedDocuments, embedQuery } from "@/lib/embeddings";
 import { requireUserId } from "@/lib/auth";
 import { withRetry } from "@/lib/retry";
@@ -13,6 +13,14 @@ export type NoteListItem = Pick<
   Note,
   "id" | "title" | "summary" | "tags" | "updatedAt"
 >;
+
+function fallbackEnrichment(content: string): Enrichment {
+  const firstLine = content
+    .split("\n")
+    .map((line) => line.replace(/^#+\s*/, "").trim())
+    .find(Boolean);
+  return { title: (firstLine ?? "Untitled").slice(0, 80), summary: "", tags: [] };
+}
 
 export async function listNotes(): Promise<NoteListItem[]> {
   const ownerId = await requireUserId();
@@ -50,9 +58,11 @@ export async function saveNote(input: {
   const content = input.content.trim();
   if (!content) throw new Error("Note is empty.");
 
-  const [enrichment, [embedding]] = await Promise.all([
-    enrichNote(content),
-    embedDocuments([content]),
+  const [enrichment, embedding] = await Promise.all([
+    enrichNote(content).catch(() => fallbackEnrichment(content)),
+    embedDocuments([content])
+      .then((vectors) => vectors[0] ?? null)
+      .catch(() => null),
   ]);
 
   if (input.id) {
