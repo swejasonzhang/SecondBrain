@@ -3,19 +3,8 @@ import { retrieveContext } from "@/lib/actions";
 
 export const runtime = "nodejs";
 export const maxDuration = 60;
-// Co-locate with the Neon database (us-east-1) to minimise query latency.
 export const preferredRegion = "iad1";
 
-/**
- * "Chat with your brain" — Retrieval-Augmented Generation.
- *
- * 1. Embed the question and pull the most relevant notes (retrieveContext).
- * 2. Inject those notes as grounding context into Claude's system prompt.
- * 3. Stream the answer back token-by-token as plain text.
- *
- * The response header `x-sources` carries the cited note titles so the UI can
- * show which notes the answer was drawn from.
- */
 export async function POST(req: Request) {
   const { message } = (await req.json()) as { message?: string };
   if (!message?.trim()) {
@@ -35,12 +24,7 @@ export async function POST(req: Request) {
 
   const context =
     sources.length > 0
-      ? sources
-          .map(
-            (s, i) =>
-              `[Note ${i + 1}: ${s.title}]\n${s.content}`,
-          )
-          .join("\n\n")
+      ? sources.map((s, i) => `[Note ${i + 1}: ${s.title}]\n${s.content}`).join("\n\n")
       : "(No relevant notes found in the user's second brain.)";
 
   const system = `You are the user's "second brain" — a thoughtful assistant that answers questions using ONLY the notes provided below as context.
@@ -92,9 +76,7 @@ ${context}
     headers: {
       "Content-Type": "text/plain; charset=utf-8",
       "x-sources": encodeURIComponent(
-        JSON.stringify(
-          sources.map((s) => ({ id: s.id, title: s.title })),
-        ),
+        JSON.stringify(sources.map((s) => ({ id: s.id, title: s.title }))),
       ),
     },
   });

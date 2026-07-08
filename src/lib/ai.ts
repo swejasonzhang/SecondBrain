@@ -1,10 +1,5 @@
 import Anthropic from "@anthropic-ai/sdk";
 
-/**
- * Claude models:
- *  - Opus 4.8 for the RAG chat (the highest-quality reasoning over retrieved notes).
- *  - Haiku 4.5 for cheap, fast note enrichment (title/summary/tags) on save.
- */
 export const CHAT_MODEL = "claude-opus-4-8";
 export const ENRICH_MODEL = "claude-haiku-4-5";
 
@@ -26,11 +21,6 @@ export interface Enrichment {
   tags: string[];
 }
 
-/**
- * Generate a title, one-sentence summary, and up to 5 topical tags for a note.
- * Uses structured outputs so the response is guaranteed to match the schema —
- * no brittle JSON-from-prose parsing.
- */
 export async function enrichNote(content: string): Promise<Enrichment> {
   const anthropic = getAnthropic();
 

@@ -58,7 +58,7 @@ export function ChatPanel() {
         const raw = res.headers.get("x-sources");
         if (raw) sources = JSON.parse(decodeURIComponent(raw));
       } catch {
-        /* ignore malformed source header */
+        sources = [];
       }
 
       const reader = res.body.getReader();

@@ -65,7 +65,6 @@ export function Workspace({ initialNotes, dbError }: Props) {
     await refresh();
   }
 
-  // Debounced semantic search.
   useEffect(() => {
     const q = query.trim();
     if (!q) {
@@ -91,7 +90,6 @@ export function Workspace({ initialNotes, dbError }: Props) {
 
   return (
     <div className="flex h-screen flex-col bg-bg text-text">
-      {/* Top bar */}
       <header className="flex items-center justify-between border-b border-border px-5 py-3">
         <div className="flex items-center gap-2.5">
           <span className="text-xl">🧠</span>
@@ -131,7 +129,6 @@ export function Workspace({ initialNotes, dbError }: Props) {
       )}
 
       <div className="flex min-h-0 flex-1">
-        {/* Sidebar: search + note list */}
         <aside className="flex w-72 shrink-0 flex-col border-r border-border">
           <div className="border-b border-border p-3">
             <input
@@ -226,7 +223,6 @@ export function Workspace({ initialNotes, dbError }: Props) {
           </div>
         </aside>
 
-        {/* Editor */}
         <main className="flex min-w-0 flex-1 flex-col">
           <div className="flex items-center justify-between border-b border-border px-5 py-2.5">
             <span className="text-xs text-text-faint">
@@ -258,7 +254,6 @@ export function Workspace({ initialNotes, dbError }: Props) {
           />
         </main>
 
-        {/* Chat panel */}
         {showChat && (
           <section className="w-96 shrink-0 border-l border-border">
             <ChatPanel />

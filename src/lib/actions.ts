@@ -42,12 +42,6 @@ export async function getNote(id: string): Promise<Note | undefined> {
   return note;
 }
 
-/**
- * Create or update a note. On every save we:
- *  1. ask Claude for a title/summary/tags (AI enrichment), and
- *  2. compute a Voyage embedding of the content (for semantic search + RAG),
- * both in parallel to keep the save fast.
- */
 export async function saveNote(input: {
   id?: string;
   content: string;
@@ -109,11 +103,6 @@ export interface SearchHit {
   similarity: number;
 }
 
-/**
- * Semantic search: embed the query, then rank notes by cosine similarity
- * against their stored embeddings using pgvector's `<=>` distance operator.
- * Similarity = 1 - cosine distance.
- */
 export async function searchNotes(query: string): Promise<SearchHit[]> {
   const q = query.trim();
   if (!q) return [];
@@ -139,10 +128,6 @@ export async function searchNotes(query: string): Promise<SearchHit[]> {
   );
 }
 
-/**
- * Retrieve the top-k most relevant notes for a chat question — the "R" in RAG.
- * Shared by the chat route to ground Claude's answer in the user's own notes.
- */
 export async function retrieveContext(
   query: string,
   k = 5,
@@ -165,7 +150,6 @@ export async function retrieveContext(
         and(
           eq(notes.ownerId, ownerId),
           sql`${notes.embedding} IS NOT NULL`,
-          // Only include reasonably relevant notes so the model isn't fed noise.
           gt(similarity, 0.3),
         ),
       )

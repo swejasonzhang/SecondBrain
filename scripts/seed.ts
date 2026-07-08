@@ -1,14 +1,3 @@
-/**
- * Seed the database with a handful of demo notes so the app looks alive on
- * first run. Each note is embedded via Voyage and enriched via Claude, exactly
- * like a real save.
- *
- *   SEED_USER_ID=user_xxx npx tsx scripts/seed.ts
- *
- * Set SEED_USER_ID to your Clerk user id (find it in the Clerk dashboard, or log
- * in and copy it from the account menu) so the demo notes show up in your account.
- * Requires DATABASE_URL, VOYAGE_API_KEY, and ANTHROPIC_API_KEY in .env.local.
- */
 import "dotenv/config";
 import { db } from "../src/db";
 import { notes } from "../src/db/schema";
@@ -50,8 +39,8 @@ async function main() {
   console.log(`Seeding ${DEMO_NOTES.length} demo notes for owner "${ownerId}"…`);
   if (ownerId === "demo-user") {
     console.warn(
-      "  ⚠️  SEED_USER_ID not set — notes won't be visible to a logged-in user.\n" +
-        "     Re-run with SEED_USER_ID=<your Clerk user id> to see them in the app.",
+      "  SEED_USER_ID not set — notes won't be visible to a logged-in user.\n" +
+        "  Re-run with SEED_USER_ID=<your Clerk user id> to see them in the app.",
     );
   }
   for (const content of DEMO_NOTES) {

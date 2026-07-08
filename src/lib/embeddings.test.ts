@@ -1,6 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 
-// Mock the Voyage SDK before importing the module under test.
 const embedMock = vi.fn();
 vi.mock("voyageai", () => ({
   VoyageAIClient: class {

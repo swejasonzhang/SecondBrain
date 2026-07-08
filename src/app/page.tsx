@@ -1,29 +1,23 @@
-import { Show, SignInButton, SignUpButton } from "@clerk/nextjs";
+import { SignInButton, SignUpButton } from "@clerk/nextjs";
+import { auth } from "@clerk/nextjs/server";
 import { listNotes } from "@/lib/actions";
 import { Workspace } from "@/components/Workspace";
 
-// Always render fresh — notes change on every save.
 export const dynamic = "force-dynamic";
-// Co-locate with the Neon database (us-east-1) to minimise query latency.
 export const preferredRegion = "iad1";
 
 export default async function Home() {
-  return (
-    <>
-      <Show when="signed-out">
-        <Landing />
-      </Show>
-      <Show when="signed-in">
-        <SignedInWorkspace />
-      </Show>
-    </>
-  );
-}
+  let userId: string | null = null;
+  try {
+    ({ userId } = await auth());
+  } catch {
+    userId = null;
+  }
 
-async function SignedInWorkspace() {
+  if (!userId) return <Landing />;
+
   let notes: Awaited<ReturnType<typeof listNotes>> = [];
   let dbError: string | null = null;
-
   try {
     notes = await listNotes();
   } catch (err) {
@@ -65,10 +59,7 @@ function Landing() {
             { icon: "💬", title: "Chat with your notes", body: "RAG answers with cited sources." },
             { icon: "✨", title: "Auto-enrichment", body: "AI titles, summaries, and tags on save." },
           ].map((f) => (
-            <div
-              key={f.title}
-              className="rounded-xl border border-border bg-bg-card p-4"
-            >
+            <div key={f.title} className="rounded-xl border border-border bg-bg-card p-4">
               <div className="text-xl">{f.icon}</div>
               <div className="mt-2 text-sm font-medium">{f.title}</div>
               <div className="mt-1 text-xs text-text-faint">{f.body}</div>

@@ -1,7 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 
-// A chainable, awaitable Drizzle stand-in: every builder method returns the same
-// object, and awaiting it resolves to a per-test configurable result set.
 const h = vi.hoisted(() => {
   let dbResult: unknown[] = [];
   const chain: Record<string, unknown> = {};

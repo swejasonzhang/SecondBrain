@@ -47,10 +47,8 @@ describe("POST /api/chat", () => {
     const res = await post({ message: "what did I learn?" });
     expect(res.status).toBe(200);
 
-    // The streamed body is the concatenated deltas.
     expect(await res.text()).toBe("Hello world");
 
-    // The system prompt is grounded in the retrieved note.
     const systemPrompt = streamMock.mock.calls[0][0].system as string;
     expect(systemPrompt).toContain("Note One");
     expect(systemPrompt).toContain("vector db facts");
@@ -76,7 +74,6 @@ describe("POST /api/chat", () => {
     expect(res.status).toBe(200);
     const body = await res.text();
     expect(body).toContain("couldn't reach your notes");
-    // Should never have attempted to call the model.
     expect(streamMock).not.toHaveBeenCalled();
   });
 });

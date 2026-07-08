@@ -24,7 +24,6 @@ describe("withRetry", () => {
     await expect(withRetry(fn, { retries: 2, delayMs: 1 })).rejects.toThrow(
       "still down",
     );
-    // initial attempt + 2 retries
     expect(fn).toHaveBeenCalledTimes(3);
   });
 });
